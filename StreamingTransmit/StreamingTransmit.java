@@ -1,5 +1,6 @@
 package net.floodlightcontroller.StreamingTransmit;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 
@@ -13,9 +14,12 @@ import net.floodlightcontroller.core.module.FloodlightModuleContext;
 import net.floodlightcontroller.core.module.FloodlightModuleException;
 import net.floodlightcontroller.core.module.IFloodlightModule;
 import net.floodlightcontroller.core.module.IFloodlightService;
+import net.floodlightcontroller.restserver.IRestApiService;
 
 public class StreamingTransmit implements IOFMessageListener, IFloodlightModule {
 
+	protected IRestApiService restApi = null;
+	
 	@Override
 	public String getName() {
 		// TODO Auto-generated method stub
@@ -49,12 +53,16 @@ public class StreamingTransmit implements IOFMessageListener, IFloodlightModule 
 	@Override
 	public Collection<Class<? extends IFloodlightService>> getModuleDependencies() {
 		// TODO Auto-generated method stub
-		return null;
+		Collection<Class<? extends IFloodlightService>> l =
+	            new ArrayList<Class<? extends IFloodlightService>>();
+		l.add(IRestApiService.class);
+		return l;
 	}
 
 	@Override
 	public void init(FloodlightModuleContext context) throws FloodlightModuleException {
 		// TODO Auto-generated method stub
+		this.restApi = context.getServiceImpl(IRestApiService.class);
 
 	}
 
