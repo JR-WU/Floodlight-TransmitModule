@@ -12,7 +12,7 @@ public class StreamingTransmitWebRoutable implements RestletRoutable {
 	public Restlet getRestlet(Context context) {
 		// TODO Auto-generated method stub
         Router router = new Router(context);
-        router.attach("/Trans", StaticFlowIpResource.class);
+        router.attach("/Trans", StreamingTransmitResource.class);
         return router;
 	}
 
