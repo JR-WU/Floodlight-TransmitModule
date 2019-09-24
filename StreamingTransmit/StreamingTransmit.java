@@ -2,11 +2,20 @@ package net.floodlightcontroller.StreamingTransmit;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.util.concurrent.ConcurrentSkipListSet;
+import net.floodlightcontroller.packet.Ethernet;
+
 
 import org.projectfloodlight.openflow.protocol.OFMessage;
 import org.projectfloodlight.openflow.protocol.OFType;
 
+import net.floodlightcontroller.core.IFloodlightProviderService;
+import net.floodlightcontroller.StreamingTransmit.web.StreamingTransmitWebRoutable;
 import net.floodlightcontroller.core.FloodlightContext;
 import net.floodlightcontroller.core.IOFMessageListener;
 import net.floodlightcontroller.core.IOFSwitch;
@@ -19,12 +28,16 @@ import net.floodlightcontroller.restserver.IRestApiService;
 
 public class StreamingTransmit implements IOFMessageListener, IFloodlightModule, IStreamingTransmitService{
 
+
+	protected IFloodlightProviderService floodlightProvider;
+	protected Set<Long> macAddresses;
+	protected static Logger logger;
 	protected IRestApiService restApi = null;
 	
 	@Override
 	public String getName() {
 		// TODO Auto-generated method stub
-		return null;
+		return StreamingTransmit.class.getSimpleName();
 	}
 
 	@Override
@@ -48,7 +61,9 @@ public class StreamingTransmit implements IOFMessageListener, IFloodlightModule,
 	@Override
 	public Map<Class<? extends IFloodlightService>, IFloodlightService> getServiceImpls() {
 		// TODO Auto-generated method stub
-		return null;
+		Map<Class<? extends IFloodlightService>, IFloodlightService> m = new HashMap<Class<? extends IFloodlightService>, IFloodlightService>();
+	    m.put(IStreamingTransmitService.class, this);
+	    return m;
 	}
 
 	@Override
@@ -56,6 +71,7 @@ public class StreamingTransmit implements IOFMessageListener, IFloodlightModule,
 		// TODO Auto-generated method stub
 		Collection<Class<? extends IFloodlightService>> l =
 	            new ArrayList<Class<? extends IFloodlightService>>();
+		l.add(IFloodlightProviderService.class);
 		l.add(IRestApiService.class);
 		return l;
 	}
@@ -64,13 +80,16 @@ public class StreamingTransmit implements IOFMessageListener, IFloodlightModule,
 	public void init(FloodlightModuleContext context) throws FloodlightModuleException {
 		// TODO Auto-generated method stub
 		this.restApi = context.getServiceImpl(IRestApiService.class);
-
+	    floodlightProvider = context.getServiceImpl(IFloodlightProviderService.class);
+	    macAddresses = new ConcurrentSkipListSet<Long>();
+	    logger = LoggerFactory.getLogger(StreamingTransmit.class);
 	}
 
 	@Override
 	public void startUp(FloodlightModuleContext context) throws FloodlightModuleException {
 		// TODO Auto-generated method stub
-
+		floodlightProvider.addOFMessageListener(OFType.PACKET_IN, this);
+		if (restApi != null) restApi.addRestletRoutable(new StreamingTransmitWebRoutable());
 	}
 
 	@Override
@@ -79,8 +98,11 @@ public class StreamingTransmit implements IOFMessageListener, IFloodlightModule,
 		return null;
 	}
 	//in this method, we will implement the TCP connection and flow delivery.
-	public void StreamTransmitMain(IDevice source, IDevice dest, String IPSrc, String IPDst) {
-		
+	@Override
+	public void StreamTransmitMain(String IPS, String IPD) {
+		//Only for testing~
+		System.out.println("the IPSrc is"+ IPS);
+		System.out.println("the IPDst is"+ IPD);
 	}
 
 }

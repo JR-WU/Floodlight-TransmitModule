@@ -27,6 +27,7 @@ public class StreamingTransmitResource extends ServerResource{
 		//and now we need to phrase fmjson and save it!
 		IStreamingTransmitService service = (IStreamingTransmitService) getContext().getAttributes().get(IStreamingTransmitService.class.getCanonicalName());
 		try {
+	        System.out.println(fmjson);
 			phrasejson(fmjson);
 		}catch(Exception e) {
         	logger.error("Error Pharse json"); 
@@ -36,8 +37,11 @@ public class StreamingTransmitResource extends ServerResource{
 		IDevice source = deviceSearch(IPSrc);
 		IDevice Dst = deviceSearch(IPDst);
 		//maybe need some other attributes
-		service.StreamTransmitMain(source, Dst, this.IPSrc, this.IPDst);
-		return "1";
+		System.out.println(IPSrc+"\n"+IPDst);
+		System.out.println("heheheheheeheheheheheheheheh");
+		service.StreamTransmitMain(IPSrc, IPDst);
+		System.out.println("-------------------------------------------------------");
+		return ("{\"status\" : WORK \"}");
 		
 	}
 	//because we don't know the message format sent by them, so we make an easy one to test function.
@@ -48,25 +52,31 @@ public class StreamingTransmitResource extends ServerResource{
 		JsonParser jp;
         try {
             jp = f.createJsonParser(fmjson);
+//            System.out.println("11111111111111111111111111111111111111111111111111");
         } catch (JsonParseException e) {
             throw new IOException(e);
         }
+//        System.out.println("22222222222222222222222222222222222222222222222222");
         jp.nextToken();
         if (jp.getText() != "{") {
         	
             throw new IOException("Expected START_ARRAY");
         }
         jp.nextToken();
+        System.out.println(jp.getText());
+//        System.out.println("33333333333333333333333333333333333333333333333333");
         if (jp.getText() == "IPSrc")
         {
         	jp.nextToken();
         	IPSrc = jp.getText();
+//        	System.out.println(IPSrc);
         }else {throw new IOException("Expected IPDst");}
         jp.nextToken();
         if (jp.getText() == "IPDst")
         {
         	jp.nextToken();
         	IPDst= jp.getText();
+//        	System.out.println(IPDst);
         }else throw new IOException("Expected IPDst");
         return;
 	}
