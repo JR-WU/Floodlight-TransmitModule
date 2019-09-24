@@ -1,10 +1,9 @@
 package net.floodlightcontroller.StreamingTransmit;
 
-import org.restlet.resource.ServerResource;
-
 import java.io.IOException;
 
 import org.restlet.resource.Post;
+import org.restlet.resource.ServerResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
