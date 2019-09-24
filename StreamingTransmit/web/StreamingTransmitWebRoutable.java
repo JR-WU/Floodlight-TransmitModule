@@ -1,4 +1,4 @@
-package net.floodlightcontroller.StreamingTransmit;
+package net.floodlightcontroller.StreamingTransmit.web;
 
 import org.restlet.Context;
 import org.restlet.Restlet;

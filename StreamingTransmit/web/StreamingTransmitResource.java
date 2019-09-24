@@ -1,4 +1,4 @@
-package net.floodlightcontroller.StreamingTransmit;
+package net.floodlightcontroller.StreamingTransmit.web;
 
 import java.io.IOException;
 import net.floodlightcontroller.StreamingTransmit.IStreamingTransmitService;
@@ -11,6 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.MappingJsonFactory;
 
 public class StreamingTransmitResource extends ServerResource{
 	
@@ -26,7 +28,7 @@ public class StreamingTransmitResource extends ServerResource{
 		IStreamingTransmitService service = (IStreamingTransmitService) getContext().getAttributes().get(IStreamingTransmitService.class.getCanonicalName());
 		try {
 			phrasejson(fmjson);
-		}catch(IOException e) {
+		}catch(Exception e) {
         	logger.error("Error Pharse json"); 
             return "{status:Error!!!!Could not parse this fucking json, see log for details.}";
 		}
@@ -38,10 +40,35 @@ public class StreamingTransmitResource extends ServerResource{
 		return "1";
 		
 	}
-
-	private void phrasejson(String fmjson) {
+	//because we don't know the message format sent by them, so we make an easy one to test function.
+	@SuppressWarnings("deprecation")
+	private void phrasejson(String fmjson) throws IOException {
 		// TODO Auto-generated method stub
-		
+		MappingJsonFactory f = new MappingJsonFactory();
+		JsonParser jp;
+        try {
+            jp = f.createJsonParser(fmjson);
+        } catch (JsonParseException e) {
+            throw new IOException(e);
+        }
+        jp.nextToken();
+        if (jp.getText() != "{") {
+        	
+            throw new IOException("Expected START_ARRAY");
+        }
+        jp.nextToken();
+        if (jp.getText() == "IPSrc")
+        {
+        	jp.nextToken();
+        	IPSrc = jp.getText();
+        }else {throw new IOException("Expected IPDst");}
+        jp.nextToken();
+        if (jp.getText() == "IPDst")
+        {
+        	jp.nextToken();
+        	IPDst= jp.getText();
+        }else throw new IOException("Expected IPDst");
+        return;
 	}
 	
 	//search correspond device according to the Phrased IP

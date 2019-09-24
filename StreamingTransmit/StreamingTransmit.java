@@ -14,9 +14,10 @@ import net.floodlightcontroller.core.module.FloodlightModuleContext;
 import net.floodlightcontroller.core.module.FloodlightModuleException;
 import net.floodlightcontroller.core.module.IFloodlightModule;
 import net.floodlightcontroller.core.module.IFloodlightService;
+import net.floodlightcontroller.devicemanager.IDevice;
 import net.floodlightcontroller.restserver.IRestApiService;
 
-public class StreamingTransmit implements IOFMessageListener, IFloodlightModule {
+public class StreamingTransmit implements IOFMessageListener, IFloodlightModule, IStreamingTransmitService{
 
 	protected IRestApiService restApi = null;
 	
@@ -76,6 +77,10 @@ public class StreamingTransmit implements IOFMessageListener, IFloodlightModule 
 	public Command receive(IOFSwitch sw, OFMessage msg, FloodlightContext cntx) {
 		// TODO Auto-generated method stub
 		return null;
+	}
+	//in this method, we will implement the TCP connection and flow delivery.
+	public void StreamTransmitMain(IDevice source, IDevice dest, String IPSrc, String IPDst) {
+		
 	}
 
 }
