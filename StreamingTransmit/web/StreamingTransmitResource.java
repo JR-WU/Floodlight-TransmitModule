@@ -2,8 +2,6 @@ package net.floodlightcontroller.StreamingTransmit.web;
 
 import java.io.IOException;
 import net.floodlightcontroller.StreamingTransmit.IStreamingTransmitService;
-import net.floodlightcontroller.devicemanager.IDevice;
-import net.floodlightcontroller.devicemanager.IDeviceService;
 
 import org.restlet.resource.Post;
 import org.restlet.resource.ServerResource;
@@ -27,21 +25,15 @@ public class StreamingTransmitResource extends ServerResource{
 		//and now we need to phrase fmjson and save it!
 		IStreamingTransmitService service = (IStreamingTransmitService) getContext().getAttributes().get(IStreamingTransmitService.class.getCanonicalName());
 		try {
-	        System.out.println(fmjson);
 			phrasejson(fmjson);
 		}catch(Exception e) {
         	logger.error("Error Pharse json"); 
             return "{status:Error!!!!Could not parse this fucking json, see log for details.}";
 		}
 		
-		IDevice source = deviceSearch(IPSrc);
-		IDevice Dst = deviceSearch(IPDst);
 		//maybe need some other attributes
-		System.out.println(IPSrc+"\n"+IPDst);
-		System.out.println("heheheheheeheheheheheheheheh");
 		service.StreamTransmitMain(IPSrc, IPDst);
-		System.out.println("-------------------------------------------------------");
-		return ("{\"status\" : WORK \"}");
+		return ("{\"status\" : Get your Post! Now transer viedo Streaming! \"}");
 		
 	}
 	//because we don't know the message format sent by them, so we make an easy one to test function.
@@ -52,11 +44,9 @@ public class StreamingTransmitResource extends ServerResource{
 		JsonParser jp;
         try {
             jp = f.createJsonParser(fmjson);
-//            System.out.println("11111111111111111111111111111111111111111111111111");
         } catch (JsonParseException e) {
             throw new IOException(e);
         }
-//        System.out.println("22222222222222222222222222222222222222222222222222");
         jp.nextToken();
         if (jp.getText() != "{") {
         	
@@ -64,36 +54,20 @@ public class StreamingTransmitResource extends ServerResource{
         }
         jp.nextToken();
         System.out.println(jp.getText());
-//        System.out.println("33333333333333333333333333333333333333333333333333");
         if (jp.getText() == "IPSrc")
         {
         	jp.nextToken();
         	IPSrc = jp.getText();
-//        	System.out.println(IPSrc);
         }else {throw new IOException("Expected IPDst");}
         jp.nextToken();
         if (jp.getText() == "IPDst")
         {
         	jp.nextToken();
         	IPDst= jp.getText();
-//        	System.out.println(IPDst);
         }else throw new IOException("Expected IPDst");
         return;
 	}
 	
 	//search correspond device according to the Phrased IP
-    private IDevice deviceSearch(String IP){
-    	IDeviceService deviceManager = 
-                (IDeviceService)getContext().getAttributes().
-                    get(IDeviceService.class.getCanonicalName());
-    	for (IDevice D : deviceManager.getAllDevices())
-        {
-        	if(D.toString().contains(IP))
-        	{
-        		return D;
-        	}
-    }
-    	return null;
-    }
 
 }
