@@ -2,6 +2,8 @@ package net.floodlightcontroller.StreamingTransmit.web;
 
 import java.io.IOException;
 import net.floodlightcontroller.StreamingTransmit.IStreamingTransmitService;
+import net.floodlightcontroller.devicemanager.IDevice;
+import net.floodlightcontroller.devicemanager.IDeviceService;
 
 import org.restlet.resource.Post;
 import org.restlet.resource.ServerResource;
@@ -32,8 +34,10 @@ public class StreamingTransmitResource extends ServerResource{
 		}
 		
 		//maybe need some other attributes
-		service.StreamTransmitMain(IPSrc, IPDst);
-		return ("{\"status\" : Get your Post! Now transer viedo Streaming! \"}");
+		IDevice Cam = deviceSearch(IPSrc);
+		IDevice Terminal = deviceSearch(IPDst);
+		service.StreamTransmitMain(Cam,Terminal,IPSrc, IPDst);
+		return ("{\"status\" : Get your Post! Now transfer viedo Streaming! \"}");
 		
 	}
 	//because we don't know the message format sent by them, so we make an easy one to test function.
@@ -69,5 +73,18 @@ public class StreamingTransmitResource extends ServerResource{
 	}
 	
 	//search correspond device according to the Phrased IP
+    private IDevice deviceSearch(String IP){
+    	IDeviceService deviceManager = 
+                (IDeviceService)getContext().getAttributes().
+                    get(IDeviceService.class.getCanonicalName());
+    	for (IDevice D : deviceManager.getAllDevices())
+        {
+        	if(D.toString().contains(IP))
+        	{
+        		return D;
+        	}
+    }
+    	return null;
+    }
 
 }

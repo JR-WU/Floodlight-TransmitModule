@@ -113,16 +113,17 @@ public class StreamingTransmit implements IOFMessageListener, IFloodlightModule,
 	}
 	//in this method, we will implement the TCP connection and flow delivery.
 	@Override
-	public void StreamTransmitMain(String IPS, String IPD) {
+	public void StreamTransmitMain(IDevice deviceSrc,IDevice deviceDst,String IPS, String IPD) {
 		/*  Only for testing~
 			System.out.println("the IPSrc is"+ IPS);
 			System.out.println("the IPDst is"+ IPD);
 		*/
+		System.out.println("the IPSrc is "+ IPS);
+		System.out.println("the IPDst is "+ IPD);
 		//First,Create a TCP packet for next step;
-		
-		TCPPacket = TCPcreator(IPS,IPD);
-		
-		
+		//Testing how to find the switch connected to Devices.			
+		System.out.println("the Source Device is: " + deviceSrc);
+		System.out.println("the Destination Device is: " + deviceDst);
 	}
 	//TCP Construction Method,
 	//@IPSr: Source IP 
@@ -162,17 +163,4 @@ public class StreamingTransmit implements IOFMessageListener, IFloodlightModule,
 		return null;
 	}
 	
-    private IDevice deviceSearch(String IP){
-    	IDeviceService deviceManager = 
-                (IDeviceService)getContext().getAttributes().
-                    get(IDeviceService.class.getCanonicalName());
-    	for (IDevice D : deviceManager.getAllDevices())
-        {
-        	if(D.toString().contains(IP))
-        	{
-        		return D;
-        	}
-    }
-    	return null;
-    }
 }
