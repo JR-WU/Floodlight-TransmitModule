@@ -2,6 +2,8 @@ package net.floodlightcontroller.StreamingTransmit.web;
 
 import java.io.IOException;
 import net.floodlightcontroller.StreamingTransmit.IStreamingTransmitService;
+import net.floodlightcontroller.core.internal.IOFSwitchService;
+import net.floodlightcontroller.core.module.FloodlightModuleContext;
 import net.floodlightcontroller.devicemanager.IDevice;
 import net.floodlightcontroller.devicemanager.IDeviceService;
 
@@ -25,6 +27,7 @@ public class StreamingTransmitResource extends ServerResource{
 	public String handlePost(String fmjson) throws IOException{
 		//fmjson is what we get yep!
 		//and now we need to phrase fmjson and save it!
+		IOFSwitchService switchService = (IOFSwitchService) getContext().getAttributes().get(IOFSwitchService.class.getCanonicalName());
 		IStreamingTransmitService service = (IStreamingTransmitService) getContext().getAttributes().get(IStreamingTransmitService.class.getCanonicalName());
 		try {
 			phrasejson(fmjson);
@@ -36,7 +39,7 @@ public class StreamingTransmitResource extends ServerResource{
 		//maybe need some other attributes
 		IDevice Cam = deviceSearch(IPSrc);
 		IDevice Terminal = deviceSearch(IPDst);
-		service.StreamTransmitMain(Cam,Terminal,IPSrc, IPDst);
+		service.StreamTransmitMain(switchService, Cam,Terminal,IPSrc, IPDst);
 		return ("{\"status\" : Get your Post! Now transfer viedo Streaming! \"}");
 		
 	}
