@@ -155,7 +155,7 @@ public class StreamingTransmit implements IOFMessageListener, IFloodlightModule,
 		System.out.println("dpid： " + dpid);
 		IOFSwitch sw = switchService.getSwitch(dpid);
 		byte[] data = "packet_out message".getBytes();
-		TCPcreator(sw, deviceSrc, deviceDst, IPS, IPD, data);
+		TCPcreator(sw, deviceDst, deviceSrc, IPD, IPS, data); //TCP封装时，摄像头作为目的地址
 //		AddStaticFlows(switchService,deviceSrc,deviceDst);
 		
 	}
@@ -242,7 +242,7 @@ public class StreamingTransmit implements IOFMessageListener, IFloodlightModule,
 		
 		OFPacketOut po = sw.getOFFactory().buildPacketOut() 
 			    .setData(serializedData)
-			    .setActions(Collections.singletonList((OFAction) sw.getOFFactory().actions().output(OFPort.of(sp.getPortNumber()),Integer.MAX_VALUE)))//this will change.
+			    .setActions(Collections.singletonList((OFAction) sw.getOFFactory().actions().output(sp,Integer.MAX_VALUE)))//this will change.
 			    .setInPort(OFPort.CONTROLLER)
 			    .build();
 			  
