@@ -34,6 +34,7 @@ import org.projectfloodlight.openflow.types.TransportPort;
 import org.projectfloodlight.openflow.types.U64;
 
 import net.floodlightcontroller.core.IFloodlightProviderService;
+import net.floodlightcontroller.StreamingTransmit.web.Camera;
 import net.floodlightcontroller.StreamingTransmit.web.StreamingTransmitWebRoutable;
 import net.floodlightcontroller.core.FloodlightContext;
 import net.floodlightcontroller.core.IOFMessageListener;
@@ -62,7 +63,6 @@ public class StreamingTransmit implements IOFMessageListener, IFloodlightModule,
 	protected IRestApiService restApi = null;
 	protected String TCPPacket;
 	private byte payload[];
-	
 	private DatapathId dpidSrc;
 	private DatapathId dpidDst;
 	private OFPort portSrc;
@@ -136,26 +136,25 @@ public class StreamingTransmit implements IOFMessageListener, IFloodlightModule,
 	}
 	//in this method, we will implement the TCP connection and flow delivery.
 	@Override
-	public void StreamTransmitMain(IOFSwitchService switchService,IDevice deviceSrc,IDevice deviceDst,String IPS, String IPD) {
+	public void StreamTransmitMain(IDevice deviceCamera,IDevice deviceClient,
+			Camera camera, String IPDst, int portDst) {
 		
-		/*  Only for testing~
-			System.out.println("the IPSrc is"+ IPS);
-			System.out.println("the IPDst is"+ IPD);
-		*/
-		System.out.println("the IPSrc is "+ IPS);
-		System.out.println("the IPDst is "+ IPD);
+		String cameraIp = camera.getCameraIp();
+		int cameraPort = camera.getCameraPort();
+		this.portSrc = OFPort.ofInt(portDst);  //client is source in TCP
+		this.portDst = OFPort.ofInt(cameraPort);  //camera is destination in TCP
+		System.out.println("the IP of camera is "+ cameraIp);
+		System.out.println("the IP of client is "+ IPDst);
 		//First,Create a TCP packet for next step;
 		//Testing how to find the switch connected to Devices.			
-		System.out.println("the Source Device is: " + deviceSrc);
-		System.out.println("the Destination Device is: " + deviceDst);
+		System.out.println("the camera Device is: " + deviceCamera);
+		System.out.println("the client Device is: " + deviceClient);
 		
-		System.out.println("src mac: " + deviceSrc.getMACAddress());
-		System.out.println("dst mac: " + deviceDst.getMACAddress());
-		DatapathId dpid = findDpidByDeviceIp(deviceSrc);
-		System.out.println("dpid： " + dpid);
-		IOFSwitch sw = switchService.getSwitch(dpid);
-		byte[] data = "packet_out message".getBytes();
-		TCPcreator(sw, deviceDst, deviceSrc, IPD, IPS, data); //TCP封装时，摄像头作为目的地址
+		System.out.println("camera mac: " + deviceCamera.getMACAddress());
+		System.out.println("client mac: " + deviceClient.getMACAddress());
+		
+		byte[] data = camera.toString().getBytes();
+		TCPcreator(camera.getSwitch(), deviceClient, deviceCamera, IPDst, cameraIp, data); //camera is destination, client is source;
 //		AddStaticFlows(switchService,deviceSrc,deviceDst);
 		
 	}
@@ -213,7 +212,8 @@ public class StreamingTransmit implements IOFMessageListener, IFloodlightModule,
 	//@IPDs: Destination IP 
 	//@Data: Payload Data
 	private void TCPcreator(IOFSwitch sw,IDevice deviceSrc,IDevice deviceDst,String IPSr,String IPDs,byte Data[]){
-		//test: curl http://localhost:8080/wm/streamingtransit/Trans -X POST -d '{"IPSrc":"10.0.0.1","IPDst":"10.0.0.2"}'
+//test: curl http://localhost:8080/wm/streamingtransit/Trans -X POST -d '{"camera":{"id":1,"ip":"10.0.0.2","port":1,"username":"admin","passwd":"123456","rtstAddr":"rtst://10.0.0.2/1"},"dest":{"ip":"10.0.0.3","port":1}}'
+
 		Ethernet l2 = new Ethernet();
 		l2.setSourceMACAddress(deviceSrc.getMACAddress());//Not Sure.
 		l2.setDestinationMACAddress(deviceDst.getMACAddress());//Not sure.
@@ -226,11 +226,8 @@ public class StreamingTransmit implements IOFMessageListener, IFloodlightModule,
 		l3.setProtocol(IpProtocol.TCP);
 		
 		TCP l4 = new TCP();
-		OFPort sp = findDpidPortByDeviceIp(deviceSrc);
-		OFPort dp = findDpidPortByDeviceIp(deviceDst);
-		System.out.println("sp:"+sp+" dp:" + dp);
-		l4.setSourcePort(sp.getPortNumber());//Not Sure
-		l4.setDestinationPort(dp.getPortNumber());//Not Sure
+		l4.setSourcePort(portSrc.getPortNumber());//Not Sure
+		l4.setDestinationPort(portDst.getPortNumber());//Not Sure
 		
 		Data l7 = new Data();
 		/*this line will add data in TCP packet*/
@@ -239,16 +236,14 @@ public class StreamingTransmit implements IOFMessageListener, IFloodlightModule,
 		l3.setPayload(l4);
 		l4.setPayload(l7);
 		byte[] serializedData = l2.serialize();
-		
+		System.out.println("client Port:" + portSrc + "  camera Port:" + portDst);
 		OFPacketOut po = sw.getOFFactory().buildPacketOut() 
 			    .setData(serializedData)
-			    .setActions(Collections.singletonList((OFAction) sw.getOFFactory().actions().output(sp,Integer.MAX_VALUE)))//this will change.
+			    .setActions(Collections.singletonList((OFAction) sw.getOFFactory().actions().output(portDst,Integer.MAX_VALUE)))//this will change.
 			    .setInPort(OFPort.CONTROLLER)
 			    .build();
 			  
-			sw.write(po);
-		
-		
+		sw.write(po);		
 	}
 	
 }
