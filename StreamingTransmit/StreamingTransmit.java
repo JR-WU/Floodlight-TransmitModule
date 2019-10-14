@@ -155,7 +155,7 @@ public class StreamingTransmit implements IOFMessageListener, IFloodlightModule,
 		
 		byte[] data = camera.toString().getBytes();
 		TCPcreator(camera.getSwitch(), deviceClient, deviceCamera, IPDst, cameraIp, data); //camera is destination, client is source;
-//		AddStaticFlows(switchService,deviceCamera,deviceClient);
+		AddStaticFlows(switchService,deviceCamera,deviceClient);
 		
 	}
 	
@@ -180,7 +180,7 @@ public class StreamingTransmit implements IOFMessageListener, IFloodlightModule,
 		
 		Path path = routingmanager.getPath(dpidSrc, portSrc, dpidDst, portDst);
 		List<NodePortTuple> nodeportList = path.getPath();
-		
+		System.out.println("start add flow...");
 		for(int index = 0;index<nodeportList.size();index+=2) {
 			DatapathId switchDPID = nodeportList.get(index).getNodeId();
             IOFSwitch sw = switchService.getSwitch(switchDPID);
@@ -190,7 +190,7 @@ public class StreamingTransmit implements IOFMessageListener, IFloodlightModule,
     		//匹配域
     		Builder mb = sw.getOFFactory().buildMatch();
     		mb.setExact(MatchField.ETH_TYPE, EthType.IPv4);
-    		mb.setExact(MatchField.IPV4_SRC, IPv4Address.of(deviceSrc.getIPv4Addresses().toString()));
+    		mb.setExact(MatchField.IPV4_SRC, IPv4Address.of(deviceSrc.getIPv4Addresses()[0].toString()));
     		//指令
     		List<OFAction> actions = new ArrayList<OFAction>();
     		actions.add(sw.getOFFactory().actions().output(nodeportList.get(index+1).getPortId(), Integer.MAX_VALUE));
@@ -205,6 +205,7 @@ public class StreamingTransmit implements IOFMessageListener, IFloodlightModule,
     		FlowModUtils.setActions(fmb, actions, sw);
     		sw.write(fmb.build());
 		}
+		System.out.println("add success!");
 	}
 	
 	//TCP Construction Method,
