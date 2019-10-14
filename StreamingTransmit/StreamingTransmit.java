@@ -136,7 +136,7 @@ public class StreamingTransmit implements IOFMessageListener, IFloodlightModule,
 	}
 	//in this method, we will implement the TCP connection and flow delivery.
 	@Override
-	public void StreamTransmitMain(IDevice deviceCamera,IDevice deviceClient,
+	public void StreamTransmitMain(IOFSwitchService switchService, IDevice deviceCamera,IDevice deviceClient,
 			Camera camera, String IPDst, int portDst) {
 		
 		String cameraIp = camera.getCameraIp();
@@ -155,7 +155,7 @@ public class StreamingTransmit implements IOFMessageListener, IFloodlightModule,
 		
 		byte[] data = camera.toString().getBytes();
 		TCPcreator(camera.getSwitch(), deviceClient, deviceCamera, IPDst, cameraIp, data); //camera is destination, client is source;
-//		AddStaticFlows(switchService,deviceSrc,deviceDst);
+//		AddStaticFlows(switchService,deviceCamera,deviceClient);
 		
 	}
 	
@@ -212,7 +212,7 @@ public class StreamingTransmit implements IOFMessageListener, IFloodlightModule,
 	//@IPDs: Destination IP 
 	//@Data: Payload Data
 	private void TCPcreator(IOFSwitch sw,IDevice deviceSrc,IDevice deviceDst,String IPSr,String IPDs,byte Data[]){
-//test: curl http://localhost:8080/wm/streamingtransit/Trans -X POST -d '{"camera":{"id":1,"ip":"10.0.0.2","port":1,"username":"admin","passwd":"123456","rtstAddr":"rtst://10.0.0.2/1"},"dest":{"ip":"10.0.0.3","port":1}}'
+//test: curl http://localhost:8080/wm/streamingtransit/Trans -X POST -d '{"camera":{"id":1,"ip":"10.0.0.2","port":1,"username":"admin","passwd":"123456","rtstAddr":"rtst://10.0.0.2/1"},"dest":{"ip":"10.0.0.1","port":1}}'
 
 		Ethernet l2 = new Ethernet();
 		l2.setSourceMACAddress(deviceSrc.getMACAddress());//Not Sure.

@@ -6,5 +6,5 @@ import net.floodlightcontroller.core.module.IFloodlightService;
 import net.floodlightcontroller.devicemanager.IDevice;
 
 public interface IStreamingTransmitService extends IFloodlightService {
-	public void StreamTransmitMain(IDevice deviceCamera,IDevice deviceClient,Camera camera, String IPDst, int portDst);//Add Service to controller.
+	public void StreamTransmitMain(IOFSwitchService switchService,IDevice deviceCamera,IDevice deviceClient,Camera camera, String IPDst, int portDst);//Add Service to controller.
 }

@@ -24,5 +24,3 @@ public class StreamingTransmitWebRoutable implements RestletRoutable {
 	}
 
 }
-// curl http://localhost:8080/wm/streamingtransit/Trans -X POST -d '{"IPSrc":"10.0.0.1","IPDst":"10.0.0.2"}' | python -m json.tool
-

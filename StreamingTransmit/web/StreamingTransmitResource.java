@@ -50,6 +50,7 @@ public class StreamingTransmitResource extends ServerResource{
 		}
 		
 		if (res == 0) { //connection request
+			System.out.println("connecting to play...");
 			IDevice deviceCamera = deviceSearch(camera.getCameraIp());
 			IDevice Terminal = deviceSearch(IPDst);
 			DatapathId dpid = findDpidByDeviceIp(deviceCamera);
@@ -57,7 +58,7 @@ public class StreamingTransmitResource extends ServerResource{
 			IOFSwitch sw = switchService.getSwitch(dpid);
 			camera.setSwitch(sw);
 			System.out.println("camera information: " + camera.toString());
-			service.StreamTransmitMain(deviceCamera, Terminal, camera, IPDst, portDst);
+			service.StreamTransmitMain(switchService, deviceCamera, Terminal, camera, IPDst, portDst);
 			return ("{\"status\" : 0 , \"msg\":\"Get your Post! Now transfer viedo Streaming! \"}");
 		} else { //stop request
 			
