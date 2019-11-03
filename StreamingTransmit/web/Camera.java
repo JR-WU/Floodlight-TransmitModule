@@ -8,17 +8,17 @@ public class Camera {
 	private int cameraPort;
 	private String userName;
 	private String passwd;
-	private String rtstAddr;
+	private String rtspAddr;
 	private IOFSwitch sw;
 	
 	public Camera(int cameraId, String cameraIp, int cameraPort, String userName, String passwd,
-			String rtstAddr) {
+			String rtspAddr) {
 		this.cameraId = cameraId;
 		this.cameraIp = cameraIp;
 		this.cameraPort = cameraPort;
 		this.userName = userName;
 		this.passwd = passwd;
-		this.rtstAddr = rtstAddr;
+		this.rtspAddr = rtspAddr;
 	}
 	public int getCameraId() {
 		return cameraId;
@@ -50,11 +50,11 @@ public class Camera {
 	public void setPasswd(String passwd) {
 		this.passwd = passwd;
 	}
-	public String getRtstAddr() {
-		return rtstAddr;
+	public String getRtspAddr() {
+		return rtspAddr;
 	}
-	public void setRtstAddr(String rtstAddr) {
-		this.rtstAddr = rtstAddr;
+	public void setRtspAddr(String rtspAddr) {
+		this.rtspAddr = rtspAddr;
 	}
 	public IOFSwitch getSwitch() {
 		return sw;
@@ -65,7 +65,7 @@ public class Camera {
 	@Override
 	public String toString() {
 		return "Camera [cameraId=" + cameraId + ", cameraIp=" + cameraIp + ", cameraPort=" + cameraPort + ", userName="
-				+ userName + ", passwd=" + passwd + ", rtstAddr=" + rtstAddr + ", sw=" + sw + "]";
+				+ userName + ", passwd=" + passwd + ", rtstAddr=" + rtspAddr + ", sw=" + sw + "]";
 	}
 	
 	
