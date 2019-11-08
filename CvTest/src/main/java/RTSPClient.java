@@ -442,9 +442,9 @@ public class RTSPClient extends Thread implements IEvent {
             // RTSPClient(InetSocketAddress remoteAddress,  
             // InetSocketAddress localAddress, String address)  
             RTSPClient client = new RTSPClient(
-                    new InetSocketAddress("184.72.239.149", 554),
-                    new InetSocketAddress("192.168.3.236", 0),
-                    "rtsp://184.72.239.149/vod/mp4://BigBuckBunny_175k.mov");
+                    new InetSocketAddress("192.168.3.254", 554),
+                    new InetSocketAddress("192.168.3.102", 12345),
+                    "rtsp://admin:admin123@192.168.3.254:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1");
             client.start();
         } catch (Exception e) {
             e.printStackTrace();
