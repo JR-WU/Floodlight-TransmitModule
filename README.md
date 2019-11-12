@@ -9,4 +9,7 @@
 @authors: Ming Li from UESTC<br> 
 @authors: Wanbin Sun from UESTC<br> 
 
+@Pay Attention：
+In src/main/resources/floodlightdefault.properties, the attribute net.floodlightcontroller.statistics.StatisticsCollector.enable must be set as true if it is set as false
+
 @From UESTC
