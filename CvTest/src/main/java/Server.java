@@ -4,6 +4,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
 
+//socket通信----服务器测试类
 public class Server {
 
     public static void main(String[] args) {

@@ -1,7 +1,12 @@
+import sun.misc.BASE64Encoder;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
+
+//工具类
 public class Utils {
 
     /***
@@ -34,21 +39,23 @@ public class Utils {
         return flag;
     }
 
-    public static void parseJson(String jsonStr) {
 
-    }
-    public static String getIPFromJson(String jsonStr) {
-        String ip = "";
-        return ip;
-    }
-
-    public static int getPortFromJson(String cameraInfo) {
-        int port = 0;
-        return port;
+    /*
+     * base64 加密
+     */
+    public static String base64Encode(String str) {
+        return new BASE64Encoder().encode(str.getBytes());
     }
 
-    public static String getRtspAddrFromJson(String cameraInfo) {
-
-        return "";
+    public static byte[] hexStr2Byte(String hex) {
+        ByteBuffer bf = ByteBuffer.allocate(hex.length() / 2);
+        for (int i = 0; i < hex.length(); i++) {
+            String hexStr = hex.charAt(i) + "";
+            i++;
+            hexStr += hex.charAt(i);
+            byte b = (byte) Integer.parseInt(hexStr, 16);
+            bf.put(b);
+        }
+        return bf.array();
     }
 }

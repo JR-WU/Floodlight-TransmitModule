@@ -8,6 +8,7 @@ import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+//RTSP拉流客户端
 public class RTSPClient extends Thread implements IEvent {
 
     private static final String VERSION = " RTSP/1.0\r\n";
@@ -19,6 +20,9 @@ public class RTSPClient extends Thread implements IEvent {
     /** *//** * 本地地址 */
     private final InetSocketAddress localAddress;
 
+    /** *//** * 用户名：密码 base64加密 */
+    private final String base64Str;
+
     /** *//** * 连接通道 */
     private SocketChannel socketChannel;
 
@@ -27,6 +31,7 @@ public class RTSPClient extends Thread implements IEvent {
 
     /** *//** 接收缓冲区 */
     private final ByteBuffer receiveBuf;
+
 
     private static final int BUFFER_SIZE = 8192;
 
@@ -48,6 +53,8 @@ public class RTSPClient extends Thread implements IEvent {
 
     private String trackInfo;
 
+    private int serverPort;  // 摄像头RTCP端口
+    private boolean sendRtcpFlag = false;
 
     private enum Status {
         init, options, describe, setup, play, pause, teardown
@@ -58,7 +65,9 @@ public class RTSPClient extends Thread implements IEvent {
         this.remoteAddress = remoteAddress;
         this.localAddress = localAddress;
         this.address = address;
-
+        String userPass = address.substring(7, address.indexOf("@"));
+        this.base64Str = Utils.base64Encode(userPass);
+//        System.out.println("userpass:" + userPass + "  base64:" + base64Str);
         // 初始化缓冲区  
         sendBuf = ByteBuffer.allocateDirect(BUFFER_SIZE);
         receiveBuf = ByteBuffer.allocateDirect(BUFFER_SIZE);
@@ -86,12 +95,11 @@ public class RTSPClient extends Thread implements IEvent {
             socketChannel.configureBlocking(false);
             socketChannel.socket().bind(localAddress);
             if (socketChannel.connect(remoteAddress)) {
-//                System.out.println("开始建立连接:" + remoteAddress);
+                System.out.println("开始建立连接:" + remoteAddress);
             }
             socketChannel.register(selector, SelectionKey.OP_CONNECT
                     | SelectionKey.OP_READ | SelectionKey.OP_WRITE, this);
-//            System.out.println("端口打开成功");
-//            System.out.println("连接成功？" + isConnected());
+            System.out.println("端口打开成功");
 
 
         } catch (final IOException e1) {
@@ -247,7 +255,11 @@ public class RTSPClient extends Thread implements IEvent {
                             }
                             break;
                         case play:
-                            doPause();
+                            if (!sendRtcpFlag) {
+                                sendRTCP();
+                                sendRtcpFlag = true;
+                            }
+//                            doPause();
                             break;
 
                         case pause:
@@ -304,8 +316,8 @@ public class RTSPClient extends Thread implements IEvent {
 
     private void handle(byte[] msg) {
         String tmp = new String(msg);
-//        System.out.println("返回内容：");
-//        System.out.println(tmp);
+        System.out.println("返回内容：");
+        System.out.println(tmp);
         if (tmp.startsWith(RTSP_OK)) {
             switch (sysStatus) {
                 case init:
@@ -317,12 +329,15 @@ public class RTSPClient extends Thread implements IEvent {
                     break;
                 case describe:
                     sessionid = tmp.substring(tmp.indexOf("Session: ") + 9, tmp
-                            .indexOf("Date:"));
+                            .indexOf("timeout")-1);
                     if(sessionid!=null&&sessionid.length()>0){
                         sysStatus = Status.setup;
                     }
+                    this.serverPort = getServerPort(tmp);
+//                    System.out.println("serverPort:-------------------- " + serverPort);
                     break;
                 case setup:
+
                     sysStatus = Status.play;
                     break;
                 case play:
@@ -345,6 +360,13 @@ public class RTSPClient extends Thread implements IEvent {
 
     }
 
+    private int getServerPort(String tmp) {
+        String str = tmp.substring(tmp.indexOf("server_port")+12, tmp.indexOf("ssrc"));
+        str = str.substring(str.indexOf("-") + 1, str.length() - 1);
+//        System.out.println(str);
+        return Integer.parseInt(str);
+    }
+
     private void doTeardown() {
         StringBuilder sb = new StringBuilder();
         sb.append("TEARDOWN ");
@@ -359,7 +381,7 @@ public class RTSPClient extends Thread implements IEvent {
         sb.append(sessionid);
         sb.append("\r\n");
         send(sb.toString().getBytes());
-//        System.out.println(sb.toString());
+        System.out.println(sb.toString());
     }
 
     private void doPlay() {
@@ -373,7 +395,7 @@ public class RTSPClient extends Thread implements IEvent {
         sb.append(seq++);
         sb.append("\r\n");
         sb.append("\r\n");
-//        System.out.println(sb.toString());
+        System.out.println(sb.toString());
         send(sb.toString().getBytes());
 
     }
@@ -383,28 +405,31 @@ public class RTSPClient extends Thread implements IEvent {
         sb.append("SETUP ");
         sb.append(this.address);
         sb.append("/");
-        sb.append(trackInfo);
+//        sb.append(trackInfo);
+        sb.append(trackInfo.substring(0,10));
         sb.append(VERSION);
         sb.append("Cseq: ");
         sb.append(seq++);
         sb.append("\r\n");
 //        sb.append("Transport: RTP/AVP/TCP;UNICAST;mode=play\r\n");  //TCP.测试有问题
-        sb.append("Transport: RTP/AVP;UNICAST;client_port=16264-16265;mode=play\r\n");    // UDP 传输
+        sb.append("Transport: RTP/AVP;UNICAST;client_port=16264-16265\r\n");    // UDP 传输
         sb.append("\r\n");
-//        System.out.println(sb.toString());
+        System.out.println(sb.toString());
         send(sb.toString().getBytes());
     }
 
     private void doOption() {
         StringBuilder sb = new StringBuilder();
         sb.append("OPTIONS ");
-        sb.append(this.address.substring(0, address.lastIndexOf("/")));
+        sb.append(this.address);
+//        sb.append(this.address.substring(0, address.lastIndexOf("/")));
         sb.append(VERSION);
         sb.append("Cseq: ");
         sb.append(seq++);
         sb.append("\r\n");
+        sb.append("Authorization: Basic " + base64Str + "\r\n");
         sb.append("\r\n");
-//        System.out.println(sb.toString());
+        System.out.println(sb.toString());
         send(sb.toString().getBytes());
     }
 
@@ -417,7 +442,7 @@ public class RTSPClient extends Thread implements IEvent {
         sb.append(seq++);
         sb.append("\r\n");
         sb.append("\r\n");
-//        System.out.println(sb.toString());
+        System.out.println(sb.toString());
         send(sb.toString().getBytes());
     }
 
@@ -434,20 +459,31 @@ public class RTSPClient extends Thread implements IEvent {
         sb.append(sessionid);
         sb.append("\r\n");
         send(sb.toString().getBytes());
-//        System.out.println(sb.toString());
+        System.out.println(sb.toString());
     }
+    /**
+    * @Description send RTCP packet to DH_camera;
+    * @param
+    * @Return void
+    * @Author sunwb
+    * @Date 2019/11/14 20:10
+    **/
+  private void sendRTCP() {
+      String cameraIP = remoteAddress.getAddress().toString().substring(1);
+        new RTCPThread1(cameraIP, serverPort).start();
+  }
 
-    public static void main(String[] args) {
-        try {
-            // RTSPClient(InetSocketAddress remoteAddress,  
-            // InetSocketAddress localAddress, String address)  
-            RTSPClient client = new RTSPClient(
-                    new InetSocketAddress("192.168.3.254", 554),
-                    new InetSocketAddress("192.168.3.102", 12345),
-                    "rtsp://admin:admin123@192.168.3.254:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1");
-            client.start();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+public static void main(String[] args) {
+    try {
+        // RTSPClient(InetSocketAddress remoteAddress,
+        // InetSocketAddress localAddress, String address)
+        RTSPClient client = new RTSPClient(
+                new InetSocketAddress("192.168.3.254", 554),
+                new InetSocketAddress("192.168.3.102", 12349),
+                Const.HK_RTSP);
+        client.start();
+    } catch (Exception e) {
+        e.printStackTrace();
     }
+}
 }  

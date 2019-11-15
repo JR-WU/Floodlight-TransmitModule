@@ -2,6 +2,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
+import java.util.List;
 import java.util.logging.Logger;
 import com.alibaba.fastjson.JSON;
 
@@ -16,18 +17,20 @@ public class Main {
             while (true) {
                 log.info("wait receive...");
                 socket.receive(inPacket);
-                String[] cameraArr = new String(inBuff,0, inPacket.getLength()).split("#");
-//                System.out.println(Arrays.toString(cameraArr));
-                int rtspPort = Const.RTSP_PORT;
-                for (String cameraInfo : cameraArr) {
-                    Camera camera = JSON.parseObject(cameraInfo, Camera.class);
+                String recStr = new String(inBuff,0, inPacket.getLength());
+                System.out.println("Recive string: " + recStr);
+                List<Camera> cameraList = JSON.parseArray(recStr, Camera.class);
+                System.out.println("cameraList: " + cameraList.toString());
+                int rtspPort = Const.SOCKET_PORT;
+                for (Camera camera : cameraList) {
                     System.out.println(camera.toString());
 
                     while(Utils.isLoclePortUsing(rtspPort)) {
                         rtspPort++;
                     }
                     new RTSPClient(new InetSocketAddress(camera.getIp(), camera.getPort()),
-                            new InetSocketAddress(Const.STREAM_SERVER_IP, rtspPort), camera.getRtsp()).start();
+                            new InetSocketAddress(Const.STREAM_SERVER_IP, rtspPort++), camera.getRtspAddr()).start();
+                    Thread.sleep(500);
                 }
             }
         } catch (Exception e) {

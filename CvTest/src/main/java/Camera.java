@@ -4,16 +4,15 @@ public class Camera {
     private String ip;
     private String username;
     private String passwd;
-    private String rtsp;
+    private String rtspAddr;
 
-    public Camera(int id, int port, String ip, String username, String passwd) {
+    public Camera(int id, int port, String ip, String username, String passwd, String rtspAddr) {
         this.id = id;
         this.port = port;
         this.ip = ip;
         this.username = username;
         this.passwd = passwd;
-        this.rtsp = "rtsp://" + username + ":" + passwd + "@" + ip + ":" + port +
-                "/Streaming/Channels/101?transportmode=unicast&profile=Profile_1";
+        this.rtspAddr = rtspAddr;
     }
 
     public int getId() {
@@ -36,8 +35,8 @@ public class Camera {
         return passwd;
     }
 
-    public String getRtsp() {
-        return rtsp;
+    public String getRtspAddr() {
+        return rtspAddr;
     }
 
     @Override
@@ -48,7 +47,7 @@ public class Camera {
                 ", ip='" + ip + '\'' +
                 ", username='" + username + '\'' +
                 ", passwd='" + passwd + '\'' +
-                ", rtsp='" + rtsp + '\'' +
+                ", rtspAddr='" + rtspAddr + '\'' +
                 '}';
     }
 }

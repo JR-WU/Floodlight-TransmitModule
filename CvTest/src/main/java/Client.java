@@ -9,6 +9,8 @@ import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+
+// socket通信---客户端测试类
 public class Client extends Thread{
 
     private final InetSocketAddress remoteAddress;
@@ -17,9 +19,11 @@ public class Client extends Thread{
     private final InetSocketAddress localAddress;
 
     public Client(InetSocketAddress remoteAddress,
-                      InetSocketAddress localAddress, String address) throws InterruptedException {
-        this.remoteAddress = remoteAddress;
-        this.localAddress = localAddress;
+                InetSocketAddress localAddress, String address) throws InterruptedException {
+            this.remoteAddress = remoteAddress;
+            this.localAddress = localAddress;
+            System.out.println(remoteAddress);
+            System.out.println(localAddress);
         try {
             System.out.println("start connect...");
             Socket socket = new Socket("localhost", 8888);
