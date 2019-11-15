@@ -23,7 +23,7 @@ public class RTCPThread1 extends Thread{
 
     public void init(){
         try {
-            socket = new DatagramSocket();   //本地端口号
+            socket = new DatagramSocket();  
             outPacket = new DatagramPacket(data, data.length,InetAddress.getByName(cameraIP), cameraPort);
         } catch (IOException e) {
             e.printStackTrace();
