@@ -8,7 +8,7 @@ import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-//RTSP拉流客户端
+//RTSP交互线程类
 public class RTSPClient extends Thread implements IEvent {
 
     private static final String VERSION = " RTSP/1.0\r\n";
