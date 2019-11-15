@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.logging.Logger;
 import com.alibaba.fastjson.JSON;
 
+//主线程，根据packet_out消息进行拉流操作
 public class Main {
     private Logger log = Logger.getLogger(Main.class.getName());
     private byte[] inBuff = new byte[Const.DATA_LEN];
