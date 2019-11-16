@@ -140,9 +140,10 @@ public class InitaitedDevice implements IFloodlightModule,IInitaitedDeviceServic
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}//10s
-        	AllDevices = DeviceService.getAllDevices();
-        	AllLinks = TopologyService.getAllLinks();
+        	AllDevices = DeviceService.getAllDevices();//All Devices
+        	AllLinks = TopologyService.getAllLinks();//all Switches
         	System.out.println(AllLinks);
+        	//TODO put devices and switches into the database
         	counter++;
         }
 	}
