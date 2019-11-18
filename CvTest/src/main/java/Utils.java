@@ -58,4 +58,15 @@ public class Utils {
         }
         return bf.array();
     }
+    
+    /*
+     * string格式解析，从rtsp中获得ip和port
+     */
+    public static String[] getIPandPortFromRTSP(String cameraRTSP) {
+        String[] ans;
+        int aIndex = cameraRTSP.indexOf("@");
+        int endIndex = cameraRTSP.indexOf("/", aIndex);
+        ans = cameraRTSP.substring(aIndex+1, endIndex).split(":");
+        return ans;
+    }
 }
