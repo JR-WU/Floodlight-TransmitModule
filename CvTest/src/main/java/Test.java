@@ -7,7 +7,8 @@ public class Test {
     static String username = "admin:admin";
 
     public static void main(String[] args) {
-        InetSocketAddress socketAddress = new InetSocketAddress(Const.STREAM_SERVER_IP, 5);
-        System.out.println(socketAddress.getAddress().toString().substring(1));
+        String ss = "rtsp://admin:admin@192.168.3.253:554/Streaming/Channels";
+        String[] str = Utils.getIPandPortFromRTSP(ss);
+        System.out.println(str[0] + "\n" + str[1]);
     }
 }

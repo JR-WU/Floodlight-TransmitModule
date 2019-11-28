@@ -8,7 +8,7 @@ import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-//RTSP交互线程类
+//RTSP拉流客户端
 public class RTSPClient extends Thread implements IEvent {
 
     private static final String VERSION = " RTSP/1.0\r\n";
@@ -470,7 +470,7 @@ public class RTSPClient extends Thread implements IEvent {
     **/
   private void sendRTCP() {
       String cameraIP = remoteAddress.getAddress().toString().substring(1);
-        new RTCPThread1(cameraIP, serverPort).start();
+        new RTCPThread(cameraIP, serverPort).start();
   }
 
 public static void main(String[] args) {
