@@ -32,7 +32,7 @@ public class RTCPThread extends Thread{
 
     @Override
     public void run() {
-        System.out.println("start to send RTCP packet！");
+        System.out.println("start RTCP thread！");
         while (true) {
             try {
                 Thread.sleep(10000);
