@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -14,8 +16,10 @@ import java.util.concurrent.ConcurrentSkipListSet;
 
 import net.floodlightcontroller.packet.Data;
 import net.floodlightcontroller.packet.Ethernet;
+import net.floodlightcontroller.packet.IPacket;
 import net.floodlightcontroller.packet.IPv4;
 import net.floodlightcontroller.packet.TCP;
+import net.floodlightcontroller.packet.UDP;
 
 import org.projectfloodlight.openflow.protocol.OFBucket;
 import org.projectfloodlight.openflow.protocol.OFFlowMod;
@@ -27,6 +31,7 @@ import org.projectfloodlight.openflow.protocol.action.OFAction;
 import org.projectfloodlight.openflow.protocol.action.OFActionSetField;
 import org.projectfloodlight.openflow.protocol.match.MatchField;
 import org.projectfloodlight.openflow.protocol.oxm.OFOxmIpv4Dst;
+import org.projectfloodlight.openflow.protocol.oxm.OFOxmUdpDst;
 import org.projectfloodlight.openflow.protocol.match.Match.Builder;
 import org.projectfloodlight.openflow.types.DatapathId;
 import org.projectfloodlight.openflow.types.EthType;
@@ -40,11 +45,13 @@ import org.projectfloodlight.openflow.types.TransportPort;
 import org.projectfloodlight.openflow.types.U64;
 
 import net.floodlightcontroller.core.IFloodlightProviderService;
-import net.floodlightcontroller.StreamingTransmit.web.Camera;
+import net.floodlightcontroller.camera.Camera;
+import net.floodlightcontroller.CONST.Const;
 import net.floodlightcontroller.StreamingTransmit.web.StreamingTransmitWebRoutable;
 import net.floodlightcontroller.core.FloodlightContext;
 import net.floodlightcontroller.core.IOFMessageListener;
 import net.floodlightcontroller.core.IOFSwitch;
+import net.floodlightcontroller.core.IListener.Command;
 import net.floodlightcontroller.core.internal.IOFSwitchService;
 import net.floodlightcontroller.core.module.FloodlightModuleContext;
 import net.floodlightcontroller.core.module.FloodlightModuleException;
@@ -59,6 +66,7 @@ import net.floodlightcontroller.restserver.IRestApiService;
 import net.floodlightcontroller.routing.Path;
 import net.floodlightcontroller.routing.RoutingManager;
 import net.floodlightcontroller.util.FlowModUtils;
+import utils.Utils;
 
 public class StreamingTransmit implements IOFMessageListener, IFloodlightModule, IStreamingTransmitService{
 
@@ -74,6 +82,11 @@ public class StreamingTransmit implements IOFMessageListener, IFloodlightModule,
 	private OFPort portSrc;
 	private OFPort portDst;
 	private RoutingManager routingmanager;
+	
+	private Map <String,Integer>CameraGroupIdMap;
+	private int GroupId;
+	private Map <Integer,Set<String>>GroupIdHostCollectionMap;
+	private Map <String,Boolean>CameraStaticflowIn;
 	
 	@Override
 	public String getName() {
@@ -125,6 +138,11 @@ public class StreamingTransmit implements IOFMessageListener, IFloodlightModule,
 	    macAddresses = new ConcurrentSkipListSet<Long>();
 	    logger = LoggerFactory.getLogger(StreamingTransmit.class);
 	    this.routingmanager = new RoutingManager();
+	    
+	    this.CameraGroupIdMap = new HashMap<String,Integer>();
+	    this.CameraStaticflowIn = new HashMap<String,Boolean>();
+	    this.GroupIdHostCollectionMap = new HashMap<Integer,Set<String>>();
+	    this.GroupId = 0;
 	}
 
 	@Override
@@ -132,39 +150,84 @@ public class StreamingTransmit implements IOFMessageListener, IFloodlightModule,
 		// TODO Auto-generated method stub
 		floodlightProvider.addOFMessageListener(OFType.PACKET_IN, this);
 		if (restApi != null) restApi.addRestletRoutable(new StreamingTransmitWebRoutable());
+//		IOFSwitchService switchService = (IOFSwitchService) getContext().getAttributes().get(IOFSwitchService.class.getCanonicalName());
+		// 下发静态流表用于匹配拉流服务器的packet_in消息
+		
 
 	}
 
 	@Override
 	public Command receive(IOFSwitch sw, OFMessage msg, FloodlightContext cntx) {
-		// TODO Auto-generated method stub
-		return null;
+		switch (msg.getType()) {
+	    case PACKET_IN:
+	        /* Retrieve the deserialized packet in message */
+	        Ethernet eth = IFloodlightProviderService.bcStore.get(cntx, IFloodlightProviderService.CONTEXT_PI_PAYLOAD);
+	 
+
+	        /* 
+	         * Check the ethertype of the Ethernet frame and retrieve the appropriate payload.
+	         * Note the shallow equality check. EthType caches and reuses instances for valid types.
+	         */
+	        if (eth.getEtherType() == EthType.IPv4) {
+	            /* We got an IPv4 packet; get the payload from Ethernet */
+	            IPv4 ipv4 = (IPv4) eth.getPayload();
+	             
+	            /* Various getters and setters are exposed in IPv4 */
+	            byte[] ipOptions = ipv4.getOptions();
+	            IPv4Address dstIp = ipv4.getDestinationAddress();
+	            String srcIP = ipv4.getSourceAddress().toString();
+	            if (!srcIP.equals(Const.STREAM_SERVER_IP)) return Command.CONTINUE;
+	            System.out.println("packet_in: \n source ip: " + ipv4.getSourceAddress());
+	            /* 
+	             * Check the IP protocol version of the IPv4 packet's payload.
+	             */
+	            if (ipv4.getProtocol() == IpProtocol.UDP) {
+	                /* We got a UDP packet; get the payload from IPv4 */
+	                UDP udp = (UDP) ipv4.getPayload();
+	  
+	                /* Various getters and setters are exposed in UDP */
+	                TransportPort srcPort = udp.getSourcePort();
+	                TransportPort dstPort = udp.getDestinationPort();
+	                Data udpPayload = (Data) udp.getPayload();
+	                if(dstPort.getPort() == 23456) {  //固定端口
+	                	System.out.println("Received packet_in from stream server, the faulty camera IP is " + new String(udpPayload.getData()));
+	                }
+	            }
+	 
+	        }
+	        break;
+	    default:
+	        break;
+	    }
+	    return Command.CONTINUE;
+//	    return null;
 	}
 	//in this method, we will implement the TCP connection and flow delivery.
 	@Override
-	public void StreamTransmitMain(IOFSwitchService switchService, IDevice deviceCamera,IDevice deviceClient,
-			Camera camera, String IPDst, int portDst) {
-		
-		String cameraIp = camera.getCameraIp();
-		int cameraPort = camera.getCameraPort();
-		this.portSrc = OFPort.ofInt(portDst);  //client is source in TCP
-		this.portDst = OFPort.ofInt(cameraPort);  //camera is destination in TCP
-		System.out.println("the IP of camera is "+ cameraIp);
-		System.out.println("the IP of client is "+ IPDst);
-		//First,Create a TCP packet for next step;
-		//Testing how to find the switch connected to Devices.			
-		System.out.println("the camera Device is: " + deviceCamera);
-		System.out.println("the client Device is: " + deviceClient);
-		
-		System.out.println("camera mac: " + deviceCamera.getMACAddress());
-		System.out.println("client mac: " + deviceClient.getMACAddress());
-		String rtspCmd = camera.getRtspAddr();
-		System.out.println(rtspCmd);
-		byte[] data = rtspCmd.getBytes();
-
-		TCPcreator(camera.getSwitch(), deviceClient, deviceCamera, IPDst, cameraIp, data); //camera is destination, client is source;
-		AddStaticFlows(switchService,deviceCamera,deviceClient);
-//		AddStaticGroupFlows(switchService,deviceCamera,deviceClient);
+	public void StreamTransmitMain(IOFSwitchService switchService, IDevice deviceCamera, IDeviceService deviceManager, List<String> clientIPList) {
+		String cameraIp = deviceCamera.getIPv4Addresses()[0].toString();
+		if (clientIPList.size() == 1) {
+			String[] strArr = clientIPList.get(0).split(":");
+			String clientIP = strArr[0];
+			int udpPort = Integer.parseInt(strArr[1]);
+			IDevice deviceClient = Utils.deviceSearch(deviceManager, clientIP);
+			if(CameraStaticflowIn.get(cameraIp)==null) {
+				CameraStaticflowIn.put(cameraIp, false);			
+			}
+			
+			boolean CameraStaticflowFlag = CameraStaticflowIn.get(cameraIp);
+			
+			AddStaticFlows(switchService,deviceCamera,deviceClient,CameraStaticflowFlag,cameraIp,clientIP,udpPort);
+			
+		} else {
+//			AddStaticGroupFlows(switchService,deviceCamera,clientIPList);
+//			for (String str : clientIPList) {
+//				String[] strArr = str.split(":");
+//				String clientIP = strArr[0];
+//				int udpPort = Integer.parseInt(strArr[1]);
+//			}
+			
+		}
 	}
 	
 	//send static flow entry
@@ -180,7 +243,7 @@ public class StreamingTransmit implements IOFMessageListener, IFloodlightModule,
 		return port;
 	}
 	
-	private void AddStaticFlows(IOFSwitchService switchService,IDevice deviceSrc,IDevice deviceDst) {
+	private void AddStaticFlows(IOFSwitchService switchService,IDevice deviceSrc,IDevice deviceDst,Boolean flowexist,String cameraIp,String clientIp,int udpPort) {
 		this.dpidSrc = findDpidByDeviceIp(deviceSrc); 
 		this.dpidDst = findDpidByDeviceIp(deviceDst);
 		this.portSrc = findDpidPortByDeviceIp(deviceSrc);
@@ -188,9 +251,101 @@ public class StreamingTransmit implements IOFMessageListener, IFloodlightModule,
 		
 		Path path = routingmanager.getPath(dpidSrc, portSrc, dpidDst, portDst);
 		List<NodePortTuple> nodeportList = path.getPath();
-		System.out.println("start add flow...");
-		for(int index = 0;index<nodeportList.size();index+=2) {
-			DatapathId switchDPID = nodeportList.get(index).getNodeId();
+		DatapathId firstswitchDPID = nodeportList.get(0).getNodeId();
+		OFPort outport = nodeportList.get(1).getPortId();
+		//已经被拉过的流，静态流表已经存在了，只需修改组表就行
+		if(flowexist) {		
+			System.out.println("start add flow...");
+			
+			int GroupId_this = CameraGroupIdMap.get(cameraIp);
+			Set<String> hostcollection = this.GroupIdHostCollectionMap.get(GroupId_this);
+			if(hostcollection == null) {
+				hostcollection = new HashSet<String>();
+			}
+			hostcollection.add(clientIp+"/"+udpPort+"/"+outport.getPortNumber());
+			this.GroupIdHostCollectionMap.put(GroupId_this, hostcollection);
+			System.out.println(GroupIdHostCollectionMap);
+			addModifyGroup(switchService,firstswitchDPID,GroupId_this);
+			addOtherStaticflows(switchService,nodeportList,deviceSrc,deviceDst);
+			
+		}else {
+			//没有被拉过流，需要先下发静态流表，在下发组表，并记录GroupId
+			this.CameraStaticflowIn.put(cameraIp, true);
+			
+			System.out.println("start add flow...");
+					
+			addSpaceGroup(switchService,firstswitchDPID,GroupId);
+			this.CameraGroupIdMap.put(cameraIp, GroupId);
+			
+			
+			Set<String> hostcollection = this.GroupIdHostCollectionMap.get(GroupId);
+			if(hostcollection == null) {
+				hostcollection = new HashSet<String>();
+			}
+			hostcollection.add(clientIp+"/"+udpPort+"/"+outport.getPortNumber());
+			this.GroupIdHostCollectionMap.put(GroupId, hostcollection);
+			System.out.println(GroupIdHostCollectionMap);
+			addStaticGroupReal(switchService,firstswitchDPID,cameraIp,GroupId);
+			
+			addModifyGroup(switchService,firstswitchDPID,GroupId);
+			addOtherStaticflows(switchService,nodeportList,deviceSrc,deviceDst);
+			
+			GroupId ++;//groupid更新
+		}
+		
+	}
+	
+	
+	private void addSpaceGroup(IOFSwitchService switchService,DatapathId switchDPID,int GroupId) {
+		//拿到交换记对象
+		Set<DatapathId> ids = switchService.getAllSwitchDpids();
+		DatapathId swid = switchDPID;
+		IOFSwitch sw = switchService.getSwitch(swid);
+		
+		//组表下发
+		List<OFBucket> buckets = new ArrayList<OFBucket>();
+		
+		org.projectfloodlight.openflow.protocol.OFGroupAdd.Builder gmb = sw.getOFFactory().buildGroupAdd();
+		gmb.setBuckets(buckets);
+		OFGroup group = OFGroup.of(GroupId);
+		gmb.setGroup(group);
+		gmb.setGroupType(OFGroupType.ALL);
+		sw.write(gmb.build());
+		System.out.println("add space group success");
+	}
+	
+	private void addStaticGroupReal(IOFSwitchService switchService,DatapathId firstDatapathID,String cameraIp,int GroupId) {
+		//拿到交换记对象
+		Set<DatapathId> ids = switchService.getAllSwitchDpids();
+		DatapathId swid = firstDatapathID;
+		IOFSwitch sw = switchService.getSwitch(swid);
+		
+		//封装flowmod消息
+		OFFlowMod.Builder fmb = sw.getOFFactory().buildFlowAdd();
+		//匹配域
+		Builder mb = sw.getOFFactory().buildMatch();
+		mb.setExact(MatchField.ETH_TYPE, EthType.IPv4)
+		.setExact(MatchField.IPV4_SRC, IPv4Address.of(cameraIp))
+		.setExact(MatchField.IP_PROTO, IpProtocol.UDP)
+		.setExact(MatchField.UDP_DST, TransportPort.of(16264));
+		//指令
+		List<OFAction> actions = new ArrayList<OFAction>();
+		actions.add(sw.getOFFactory().actions().group(OFGroup.of(GroupId)));
+		//封装flowmod
+		fmb.setHardTimeout(0)
+		.setIdleTimeout(0)
+		.setBufferId(OFBufferId.NO_BUFFER)
+		.setPriority(5)
+		.setMatch(mb.build());
+		FlowModUtils.setActions(fmb, actions, sw);
+		sw.write(fmb.build());
+		System.out.println("add group real success");
+	}
+	
+	private void addOtherStaticflows(IOFSwitchService switchService,List<NodePortTuple> nodeportList,IDevice deviceSrc,IDevice deviceDst) {
+		List<NodePortTuple> nodeportlist = nodeportList;
+		for(int index = 2;index<nodeportList.size();index+=2) {
+			DatapathId switchDPID = nodeportlist.get(index).getNodeId();
             IOFSwitch sw = switchService.getSwitch(switchDPID);
             //构造流表
     		//封装flowmod消息
@@ -199,24 +354,14 @@ public class StreamingTransmit implements IOFMessageListener, IFloodlightModule,
     		Builder mb = sw.getOFFactory().buildMatch();
     		mb.setExact(MatchField.ETH_TYPE, EthType.IPv4);
     		mb.setExact(MatchField.IPV4_SRC, IPv4Address.of(deviceSrc.getIPv4Addresses()[0].toString()));
+    		mb.setExact(MatchField.IPV4_DST, IPv4Address.of(deviceDst.getIPv4Addresses()[0].toString()));
     		mb.setExact(MatchField.IP_PROTO,IpProtocol.UDP);
-    		mb.setExact(MatchField.IN_PORT, OFPort.of(2));
     		//指令
     		List<OFAction> actions = new ArrayList<OFAction>();
-//    		actions.add(sw.getOFFactory().actions().output(nodeportList.get(index+1).getPortId(), Integer.MAX_VALUE));
-    		actions.add(sw.getOFFactory().actions().output(OFPort.of(3), Integer.MAX_VALUE));
     		
-    		IPv4Address desIp = IPv4Address.of("192.168.3.101");
-    		OFOxmIpv4Dst.Builder oxmbDstIp = sw.getOFFactory().oxms().buildIpv4Dst();
-    		oxmbDstIp.setValue(desIp);
-    		OFActionSetField setFieldActionDstIp = sw.getOFFactory().actions().setField(oxmbDstIp.build());
-    		actions.add(setFieldActionDstIp);
-    		
-    		actions.add(sw.getOFFactory().actions().output(OFPort.of(4), Integer.MAX_VALUE));
+    		actions.add(sw.getOFFactory().actions().output(nodeportlist.get(index+1).getPortId(), Integer.MAX_VALUE));
     		//封装flowmod
-    		U64 cookie = AppCookie.makeCookie(2, 0);
-    		fmb.setCookie(cookie)
-    		.setHardTimeout(0)
+    		fmb.setHardTimeout(0)
     		.setIdleTimeout(0)
     		.setBufferId(OFBufferId.NO_BUFFER)
     		.setPriority(5)
@@ -224,135 +369,54 @@ public class StreamingTransmit implements IOFMessageListener, IFloodlightModule,
     		FlowModUtils.setActions(fmb, actions, sw);
     		sw.write(fmb.build());
 		}
-		System.out.println("add flows success!");
+		System.out.println("add other flows success!");
 	}
 	
-	private void AddStaticGroupFlows(IOFSwitchService switchService,IDevice deviceSrc,IDevice deviceDst) {
-		this.dpidSrc = findDpidByDeviceIp(deviceSrc); 
-		this.dpidDst = findDpidByDeviceIp(deviceDst);
-		this.portSrc = findDpidPortByDeviceIp(deviceSrc);
-		this.portDst = findDpidPortByDeviceIp(deviceDst);
-		new Thread() {
-			public void run() {
-				Path path = routingmanager.getPath(dpidSrc, portSrc, dpidDst, portDst);
-				List<NodePortTuple> nodeportList = path.getPath();
-				int lenth = nodeportList.size();
-				OFPort outPort = nodeportList.get(lenth-1).getPortId();
-				System.out.println("开始下发组表表");
-				addGroup(switchService);
-				addStaticGroupReal(switchService,outPort);
-				System.out.println("下发成功");	
-			}						
-		}.start();
-		
-	}
-	public void addGroup(IOFSwitchService switchService) {
+	private void addModifyGroup(IOFSwitchService switchService,DatapathId firstDatapathID,int GroupId) {
 		//拿到交换记对象
 		Set<DatapathId> ids = switchService.getAllSwitchDpids();
-		DatapathId swid = null;
-		for(DatapathId id : ids) {
-			swid = id;
-			break;
-		}
+		DatapathId swid = firstDatapathID;
 		IOFSwitch sw = switchService.getSwitch(swid);
-		
+		Object[] Iplist = GroupIdHostCollectionMap.get(GroupId).toArray();
 		//组表下发
 		List<OFBucket> buckets = new ArrayList<OFBucket>();
+		for(int i = 0;i < Iplist.length;i++) {
+			List<OFAction> actions = new ArrayList<OFAction>();
+			String[]IpAndPort = Iplist[i].toString().split("/");
+			IPv4Address desIp = IPv4Address.of(IpAndPort[0]);
+			int udpPort = Integer.parseInt(IpAndPort[1]);
+			int outport = Integer.parseInt(IpAndPort[2]);
+			
+			OFOxmIpv4Dst.Builder oxmbDstIp = sw.getOFFactory().oxms().buildIpv4Dst();
+			oxmbDstIp.setValue(desIp);
+			OFActionSetField setFieldActionDstIp = sw.getOFFactory().actions().setField(oxmbDstIp.build());
+			actions.add(setFieldActionDstIp);
+			
+			OFOxmUdpDst.Builder oxmUdpDst = sw.getOFFactory().oxms().buildUdpDst();
+			oxmUdpDst.setValue(TransportPort.of(udpPort));
+			OFActionSetField setFieldActionUdpDst = sw.getOFFactory().actions().setField(oxmUdpDst.build());
+			actions.add(setFieldActionUdpDst);
+			
+			actions.add(sw.getOFFactory().actions().output(OFPort.of(outport),Integer.MAX_VALUE));
+			OFBucket.Builder bucket = sw.getOFFactory().buildBucket();
+			bucket.setActions(actions)
+			.setWatchGroup(OFGroup.ANY)
+			.setWatchPort(OFPort.ANY);
+			buckets.add(bucket.build());
+		}
 		
-		org.projectfloodlight.openflow.protocol.OFGroupAdd.Builder gmb = sw.getOFFactory().buildGroupAdd();
+		
+		org.projectfloodlight.openflow.protocol.OFGroupModify.Builder gmb = sw.getOFFactory().buildGroupModify();
 		gmb.setBuckets(buckets);
-		OFGroup group = OFGroup.of(1);
+		OFGroup group = OFGroup.of(GroupId);
 		gmb.setGroup(group);
 		gmb.setGroupType(OFGroupType.ALL);
 		sw.write(gmb.build());
-		System.out.println("添加组表结束");
+		System.out.println("modify group success");
 	}
 	
-	public void addStaticGroupReal(IOFSwitchService switchService,OFPort outPort) {
-		//拿到交换记对象
-		Set<DatapathId> ids = switchService.getAllSwitchDpids();
-		DatapathId swid = null;
-		for(DatapathId id : ids) {
-			swid = id;
-			break;
-		}
-		IOFSwitch sw = switchService.getSwitch(swid);
-		
-		//组表下发
-		List<OFBucket> buckets = new ArrayList<OFBucket>();
-		
-		//填充buckets列表
-		//--------------------第1个bucket填充
-		OFBucket.Builder bucket1 = sw.getOFFactory().buildBucket();
-		List<OFAction> actions1 = new ArrayList<OFAction>();
-		
-		actions1.add(sw.getOFFactory().actions().output(OFPort.of(3), Integer.MAX_VALUE));
-		
-		bucket1.setActions(actions1);
-		bucket1.setWatchPort(OFPort.ANY);
-		bucket1.setWatchGroup(OFGroup.ANY);
-		
-		//--------------------第二个bucket填充
-		OFBucket.Builder bucket2 = sw.getOFFactory().buildBucket();
-		List<OFAction> actions2 = new ArrayList<OFAction>();
-		
-		actions2.add(sw.getOFFactory().actions().output(OFPort.of(6), Integer.MAX_VALUE));
-		
-		//绑定两个action到bucket2
-		bucket2.setActions(actions2);
-		bucket2.setWatchPort(OFPort.ANY);
-		bucket2.setWatchGroup(OFGroup.ANY);
-		
-		buckets.add(bucket1.build());
-		buckets.add(bucket2.build());
-		
-		
-		org.projectfloodlight.openflow.protocol.OFGroupAdd.Builder gmb = sw.getOFFactory().buildGroupAdd();
-		gmb.setBuckets(buckets);
-		OFGroup group = OFGroup.of(1);
-		gmb.setGroup(group);
-		gmb.setGroupType(OFGroupType.ALL);
-		sw.write(gmb.build());
-		System.out.println("添加组表项结束");
-	}
-	
-	//TCP Construction Method,
-	//@IPSr: Source IP 
-	//@IPDs: Destination IP 
-	//@Data: Payload Data
-	private void TCPcreator(IOFSwitch sw,IDevice deviceSrc,IDevice deviceDst,String IPSr,String IPDs,byte Data[]){
-//test: curl http://localhost:8080/wm/streamingtransit/Trans -X POST -d '{"camera":{"id":1,"ip":"192.168.3.254","port":1,"username":"admin","passwd":"admin123","rtstAddr":"rtsp://admin:admin123@192.168.3.254:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1"},"dest":{"ip":"192.168.3.101","port":1}}'
 
-		Ethernet l2 = new Ethernet();
-		l2.setSourceMACAddress(deviceSrc.getMACAddress());//Not Sure.
-		l2.setDestinationMACAddress(deviceDst.getMACAddress());//Not sure.
-		l2.setEtherType(EthType.IPv4);
-		
-		IPv4 l3 = new IPv4();
-		l3.setSourceAddress(IPSr);
-		l3.setDestinationAddress(IPDs);
-		l3.setTtl((byte) 64);//Time to live;
-		l3.setProtocol(IpProtocol.TCP);
-		
-		TCP l4 = new TCP();
-		l4.setSourcePort(portSrc.getPortNumber());//Not Sure
-		l4.setDestinationPort(portDst.getPortNumber());//Not Sure
-		
-		Data l7 = new Data();
-		/*this line will add data in TCP packet*/
-		l7.setData(Data);
-		l2.setPayload(l3);
-		l3.setPayload(l4);
-		l4.setPayload(l7);
-		byte[] serializedData = l2.serialize();
-		System.out.println("client Port:" + portSrc + "  camera Port:" + portDst);
-		OFPacketOut po = sw.getOFFactory().buildPacketOut() 
-			    .setData(serializedData)
-			    .setActions(Collections.singletonList((OFAction) sw.getOFFactory().actions().output(portDst,Integer.MAX_VALUE)))//this will change.
-			    .setInPort(OFPort.CONTROLLER)
-			    .build();
-			  
-		sw.write(po);		
-	}
+	
+
 	
 }
