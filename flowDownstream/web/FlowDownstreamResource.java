@@ -31,7 +31,7 @@ public class FlowDownstreamResource extends ServerResource{
 	protected Logger logger = LoggerFactory.getLogger(FlowDownstreamResource.class);//output logger
 	
 	@Post
-	public String handlePost(String cameraList){
+	public String handlePost(String inputStr){
 		//fmjson is what we get yep!
 		//and now we need to phrase fmjson and save it!
 		IOFSwitchService switchService = (IOFSwitchService) getContext().getAttributes().get(IOFSwitchService.class.getCanonicalName());
@@ -45,7 +45,7 @@ public class FlowDownstreamResource extends ServerResource{
 			System.out.println("streamServer is null");
 			return "fail";
 		}
-		service.pullStream(switchService, streamServer, cameraList);
+		service.pullStream(switchService, streamServer, inputStr);
 		logger.info("pull stream success!");
 		return "pull stream success!";
 	}
