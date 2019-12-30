@@ -91,7 +91,6 @@ void *ConnectWithHistoryServer(void *arg)
 	char Receive_BUF[5000] = {'\0'};
 	char *response = NULL;
 
-    printf("Let's get the show on the road!\n");
     struct ParameterToThread *inter_para;
     inter_para = (struct ParameterToThread *)arg;
     char* IP_Dst = inter_para->dst;
@@ -104,11 +103,10 @@ void *ConnectWithHistoryServer(void *arg)
         return NULL;
     }
 
-    printf("why you mother fucker!\n");
     printf("%s\n", IP_Dst);
     printf("%s\n", url_list);
     printf("%d\n", Port_Dst);
-    printf("why you mother fucker111!\n");
+
     if ((sockfd_http = socket(AF_INET, SOCK_STREAM, 0)) < 0 ) {
         printf("socket error!\n");
         exit(0);
@@ -118,7 +116,6 @@ void *ConnectWithHistoryServer(void *arg)
         exit(0);
         };
 
-    printf("you little bitch!\n");
     //http socket config
     bzero(&serveraddr, sizeof(serveraddr));
     serveraddr.sin_family = AF_INET;
@@ -128,7 +125,6 @@ void *ConnectWithHistoryServer(void *arg)
     udpaddr.sin_family = AF_INET;
     udpaddr.sin_port = htons(Port_Dst);
     udpaddr.sin_addr.s_addr = inet_addr((const char*)IP_Dst);
-    printf("the socket is %d\n",sockfdudp);
     //connect http
     if (inet_pton(AF_INET, IPSTR, &serveraddr.sin_addr) <= 0 ){
             printf("inet_pton error!\n");
@@ -146,9 +142,7 @@ void *ConnectWithHistoryServer(void *arg)
     memset(temp_send,'/0',sizeof(temp_send));
     ptr = strchr(url_list+7,'/');//this ptr is what we looking for//!!!!!!!!!!!!!maybe get wrong!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     head_length = Detect_number(url_list);
-    printf("head_length is %d\n", head_length);
     strncpy(de_ptr,ptr,head_length+1);//get the common url
-    printf("the de_ptr is %s\n",de_ptr);
     //build HTTP payload.
     sprintf(temp_send,HTTP_GET1,ptr,"UESTC_HTTP_TO_UDP_SERVER");
 
@@ -167,9 +161,7 @@ void *ConnectWithHistoryServer(void *arg)
         close(sockfdudp);        
         return NULL;
     }
-    printf("yeah!get it! you mother fucker\n");
     response = http_parse_result(Receive_BUF);
-    printf("the response's size is %d, and is %s\n", strlen(response),response);
     if(strlen(response) != http_parse_Contentlength(Receive_BUF))
     {
         printf("Received data is wrong!,Please check!");
@@ -186,14 +178,6 @@ void *ConnectWithHistoryServer(void *arg)
         close(sockfdudp);
         return NULL;
     }
-    // for(int counter = 0;;counter++)
-    // {
-    //     if(*(Receivept+2+counter) == '\n')
-    //     {break;}
-    //     toolman = NULL;
-    //     toolman = send_buf[0] + counter;
-    //     (send_buf[0] + counter) = Receivept + 2 + counter;
-    // }
     send_buf[0] = (char*)malloc(500*sizeof(char));
     if(CopySendBuf(send_buf[0],(Receivept+2)) == -1)
     {
@@ -208,12 +192,6 @@ void *ConnectWithHistoryServer(void *arg)
         Receivept = (char*)strstr(Receivept + 2, ",\n");
         if(Receivept == NULL)
         {break;}
-        // for(int counter = 0;;counter++)
-        // {
-        //     if(*(Receivept+2+counter) == '\n')
-        //     {break;}
-        //     send_buf[SendCounter] + counter = Receivept + 2 + counter;
-        // }
         send_buf[SendCounter] = (char*)malloc(500*sizeof(char));
         if(CopySendBuf(send_buf[SendCounter],(Receivept+2)) == -1)
         {
@@ -260,8 +238,8 @@ void *ConnectWithHistoryServer(void *arg)
                 int SendLength  = sendto(sockfdudp,(response+4),(ReceiveLength - headerLength),0,(struct sockaddr *)&udpaddr, sizeof(udpaddr));
                 if(SendLength <= 0)
                 {
-                    printf("SendLength is %d\n",SendLength);
-                    printf("Fuck you!\n");
+                    perror("the error is:\n");
+                    return NULL;
                 }
                 segement_length = (ReceiveLength - headerLength);
                 Stream_length = Stream_length + segement_length;
@@ -273,9 +251,9 @@ void *ConnectWithHistoryServer(void *arg)
                 segement_length = ReceiveLength;
                 int SendLength1 = sendto(sockfdudp,RECVBUF,ReceiveLength,0,(struct sockaddr *)&udpaddr, sizeof(udpaddr));
                 if(SendLength1 <= 0)
-                {
-                    printf("SendLength1 is %d\n",SendLength1);                    
-                    printf("Fuck you too!\n");
+                {                    
+                    perror("the error is:\n");
+                    return NULL;
                 }
                 Stream_length = Stream_length + segement_length;
                 if(Stream_length == real_length)
@@ -327,7 +305,6 @@ int main(int argc, char *argv[])
         	printf("receive_failed, length_buff");
         	return -1;
         }
-        printf("get it!\n");
         if(Length_buff[0] == '[' && Length_buff[Length_size - 1] == ']')
         {
         	//转换四字节为int，即后面数据的长度
@@ -347,15 +324,13 @@ int main(int argc, char *argv[])
         	return -1;
         }
         //解析recv_Buff中的dst_ip和dst_port，分割http存放至URL_List结构体，解析比较简单。
-        printf("heheda\n");
         PhraseString(recv_buf,&spilt_num);
         //只须一个线程，负责Send和Recv.
-        printf("nimade\n");
         Parameters.dst = dst_ip;
         Parameters.port_dst = dst_port;
         Parameters.url = ReadyForSend;
         pthread_create(&pthid[Start_thread_No],NULL,ConnectWithHistoryServer,&(Parameters));//establish a new thread.
-        usleep(10);//Let Parameters get into the threads.
+        usleep(50);//Let Parameters get into the threads.
         Start_thread_No++;
         if(Start_thread_No == 9999)
         {

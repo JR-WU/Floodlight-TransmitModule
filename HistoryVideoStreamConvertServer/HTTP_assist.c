@@ -74,7 +74,7 @@ char *http_parse_result(const char*lpbuf)
 	char *response = NULL;
 	ptmp = (char*)strstr(lpbuf, "HTTP/1.1");
 	if (!ptmp) {
-		printf("http/1.1 not faind\n");
+		printf("http/1.1 not found\n");
 		return NULL;
 	}
 	/*maybe it's wrong!*/
