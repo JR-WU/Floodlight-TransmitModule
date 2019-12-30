@@ -10,6 +10,6 @@
 @authors: Wanbin Sun from UESTC<br> 
 
 @Pay Attention：
-In src/main/resources/floodlightdefault.properties, the attribute net.floodlightcontroller.statistics.StatisticsCollector.enable must be set as true if it is set as false
-
+In src/main/resources/floodlightdefault.properties, the attribute net.floodlightcontroller.statistics.StatisticsCollector.enable must be set as true if it is set as false.
+Remember: Using root mode to run HTTP_TO_UDP_SERVER
 @From UESTC
