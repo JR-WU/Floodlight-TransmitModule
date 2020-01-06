@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.util.logging.Logger;
 
 /**
  * @program: CvTest
@@ -14,15 +15,17 @@ public class FaultyHandle extends Thread{
     private DatagramPacket outPacket = null;
     DatagramSocket socket;
     String msg;
+    Logger log;
     public FaultyHandle(String msg) {
         this.msg = msg;
+        this.log = Logger.getLogger(FaultyHandle.class.getName());
         try {
             init();
             send();
             shutdown();
         } catch (IOException e) {
             e.printStackTrace();
-            System.out.println("init failed!!!");
+            log.info("init failed!!!");
 
         }
 

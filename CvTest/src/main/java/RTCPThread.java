@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.util.logging.Logger;
 
 //使用UDP发送RTCP包的线程类
 public class RTCPThread extends Thread{
@@ -9,6 +10,7 @@ public class RTCPThread extends Thread{
     private int cameraPort;
     private DatagramPacket outPacket = null;
     DatagramSocket socket;
+    Logger log;
 
     // rtcp packet，来自于wireshark抓包
     String str = "80c9000140981deb81ca000640981deb010f4445534b544f502d354f324d425532000000";
@@ -17,7 +19,8 @@ public class RTCPThread extends Thread{
     public RTCPThread(String ip, int port){
         this.cameraIP = ip;
         this.cameraPort = port;
-        System.out.println(Thread.currentThread().getName() + "-----" + cameraIP + ":" + cameraPort);
+        this.log = Logger.getLogger(RTCPThread.class.getName());
+        log.info(Thread.currentThread().getName() + "-----" + cameraIP + ":" + cameraPort);
         init();
     }
 
@@ -32,7 +35,7 @@ public class RTCPThread extends Thread{
 
     @Override
     public void run() {
-        System.out.println("start RTCP thread！");
+        log.info("start RTCP thread！");
         while (true) {
             try {
                 Thread.sleep(10000);
@@ -42,7 +45,7 @@ public class RTCPThread extends Thread{
             try {
                 socket.send(outPacket);
             } catch (IOException e) {
-                System.out.println("outPacket 发送失败！");
+                log.info("outPacket 发送失败！");
                 e.printStackTrace();
             }
 

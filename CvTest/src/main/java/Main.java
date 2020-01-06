@@ -25,7 +25,7 @@ public class Main {
                 log.info("wait receive...");
                 socket.receive(inPacket);
                 String strJson = new String(inBuff,0, inPacket.getLength());
-                System.out.println("Recive Json: " + strJson);
+                log.info("Recive Json: " + strJson);
                 JSONObject jsonObject = JSON.parseObject(strJson);
                 String cameraRTSP = jsonObject.getString("rtspAddr");
                 String[] IPStr = Utils.getIPandPortFromRTSP(cameraRTSP);
